@@ -37,7 +37,7 @@ Result:
 
 ![phone](resources/screen.png)
 
-For more information see [examples](/tree/master/src/bocko_android/example.cljs)
+For more information see [examples](https://github.com/nvbn/bocko-android/blob/master/src/bocko_android/example.cljs)
 and [bocko](https://github.com/mfikes/bocko) for usage on cljs side. 
 
 ## License
