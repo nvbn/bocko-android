@@ -41,16 +41,15 @@
       (fn [color-map raster width height pixel-width pixel-height]
         (add-watch raster :monitor
           (fn [_ _ _ new]
-            (go (let [old @last-rendered]
-                  (<! (timeout 10))
-                  (when-not (or (= old new) (not= new @raster))
-                    (let [new-width (/ (.width android) width)]
-                      (draw! color-map
-                             new-width
-                             (* (/ new-width pixel-width) pixel-height)
-                             old new
-                             android))
-                    (reset! last-rendered new))))))))))
+            (let [old @last-rendered]
+              (when-not (or (= old new) (not= new @raster))
+                (let [new-width (/ (.width android) width)]
+                  (draw! color-map
+                         new-width
+                         (* (/ new-width pixel-width) pixel-height)
+                         old new
+                         android))
+                (reset! last-rendered new)))))))))
 
 (defn wait-android
   []

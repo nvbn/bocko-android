@@ -108,6 +108,6 @@
       (recur))))
 
 ; Defaults
-
-(go (<! (a/init))
-    (flag))
+;
+;(go (<! (a/init))
+;    (flag))
