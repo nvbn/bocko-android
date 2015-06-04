@@ -10,27 +10,19 @@
 (defonce last-attempt (atom []))
 (defonce timeouted (atom 0))
 
-(defn indexed-zip
-  [& colls]
-  (->> colls
-       (apply map vector)
-       (map-indexed vector)))
-
 (defn get-draw-commands
   [color-map pixel-width pixel-height new]
-  (flatten (for [[x [old-col new-col]] (indexed-zip @last-drawed new)
-                 :when (not= old-col new-col)]
-             (for [[y [old-color new-color]] (indexed-zip old-col new-col)
-                   :when (not= old-color new-color)
-                   :let [left (* x pixel-width)
-                         top (* y pixel-height)
-                         right (+ pixel-width left)
-                         bottom (+ top pixel-height)]]
-               {"color" (map int (new-color color-map))
-                "left" left
-                "top" top
-                "right" right
-                "bottom" bottom}))))
+  (flatten (for [[x col] (map-indexed vector new)
+                 [y color] (map-indexed vector col)
+                 :let [left (* x pixel-width)
+                       top (* y pixel-height)
+                       right (+ pixel-width left)
+                       bottom (+ top pixel-height)]]
+             {"color" (map int (get color-map color))
+              "left" left
+              "top" top
+              "right" right
+              "bottom" bottom})))
 
 (defn draw!
   [color-map pixel-width pixel-height new android]
