@@ -36,20 +36,17 @@
 
 (defn init-canvas!
   [android]
-  (let [last-rendered (atom nil)]
-    (set-create-canvas
-      (fn [color-map raster width height pixel-width pixel-height]
-        (add-watch raster :monitor
-          (fn [_ _ _ new]
-            (let [old @last-rendered]
-              (when-not (or (= old new) (not= new @raster))
-                (let [new-width (/ (.width android) width)]
-                  (draw! color-map
-                         new-width
-                         (* (/ new-width pixel-width) pixel-height)
-                         old new
-                         android))
-                (reset! last-rendered new)))))))))
+  (set-create-canvas
+    (fn [color-map raster width height pixel-width pixel-height]
+      (add-watch raster :monitor
+        (fn [_ _ _ new]
+          (when-not (not= new @raster)
+            (let [new-width (/ (.width android) width)]
+              (draw! color-map
+                     new-width
+                     (* (/ new-width pixel-width) pixel-height)
+                     @raster new
+                     android))))))))
 
 (defn wait-android
   []
