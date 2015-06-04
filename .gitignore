@@ -11,3 +11,5 @@ pom.xml.asc
 resources/public/compiled
 *.log
 android/BockoAndroid/app/src/main/assets/main.js
+.repl
+bocko_android.iml

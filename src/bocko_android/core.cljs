@@ -1,26 +1,38 @@
 (ns ^:figwheel-always bocko-android.core
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [cljs.core.async :refer [<! timeout]]
+            [cognitect.transit :as t]
             [bocko.core :refer [set-create-canvas]]))
 
+(defn indexed-zip
+  [& colls]
+  (->> colls
+       (apply map vector)
+       (map-indexed vector)))
+
+(defn get-draw-commands
+  [color-map pixel-width pixel-height old new]
+  (flatten (for [[x [old-col new-col]] (indexed-zip old new)
+                 :when (not= old-col new-col)]
+             (for [[y [old-color new-color]] (indexed-zip old-col new-col)
+                   :when (not= old-color new-color)
+                   :let [left (* x pixel-width)
+                         top (* y pixel-height)
+                         right (+ pixel-width left)
+                         bottom (+ top pixel-height)]]
+               {"color" (map int (new-color color-map))
+                "left" left
+                "top" top
+                "right" right
+                "bottom" bottom}))))
+
 (defn draw!
-  [width height color-map pixel-width pixel-height old new android]
-  (doseq [x (range width)]
-    (let [old-col (nth old x)
-          new-col (nth new x)]
-      (when-not (= old-col new-col)
-        (doseq [y (range height)]
-          (let [old-color (nth old-col y)
-                new-color (nth new-col y)]
-            (when-not (= old-color new-color)
-              (let [[r g b] (new-color color-map)
-                    left (* x pixel-width)
-                    top (* y pixel-height)
-                    right (+ pixel-width left)
-                    bottom (+ top pixel-height)]
-                (.setRGB android r g b)
-                (.drawRect android left top right bottom))))))))
-  (.flush android))
+  [color-map pixel-width pixel-height old new android]
+  (let [draw-commands (get-draw-commands color-map pixel-width
+                                         pixel-height old new)
+        writer (t/writer :json)
+        serialised (t/write writer draw-commands)]
+    (.flush android serialised)))
 
 (defn init-canvas!
   [android]
@@ -30,11 +42,10 @@
         (add-watch raster :monitor
           (fn [_ _ _ new]
             (go (let [old @last-rendered]
-                  (<! (timeout 5))
+                  (<! (timeout 10))
                   (when-not (or (= old new) (not= new @raster))
                     (let [new-width (/ (.width android) width)]
-                      (draw! width height
-                             color-map
+                      (draw! color-map
                              new-width
                              (* (/ new-width pixel-width) pixel-height)
                              old new

@@ -12,46 +12,44 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
+import com.cognitect.transit.Reader;
+import com.cognitect.transit.TransitFactory;
+
+import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Vector;
 import java.util.concurrent.LinkedBlockingQueue;
 
 class BockoView extends SurfaceView implements SurfaceHolder.Callback {
-    interface DrawCall {
-        void call(Canvas canvas, Paint paint);
-    }
+    class DrawCall {
+        HashMap<String, Object> mCall;
 
-    class SetRGB implements DrawCall {
-        int r;
-        int g;
-        int b;
-
-        public SetRGB(int r, int g, int b) {
-            this.r = r;
-            this.b = b;
-            this.g = g;
+        public DrawCall(HashMap<String, Object> call) {
+            mCall = call;
         }
 
-        public void call(Canvas canvas, Paint paint) {
-            paint.setARGB(255, r, g, b);
-        }
-    }
-
-    class DrawRect implements DrawCall {
-        float left;
-        float top;
-        float right;
-        float bottom;
-
-        public DrawRect(float left, float top, float right, float bottom) {
-            this.left = left;
-            this.top = top;
-            this.right = right;
-            this.bottom = bottom;
-        }
-
-        public void call(Canvas canvas, Paint paint) {
+        float pos(String name) {
             try {
-                canvas.drawRect(left, top, right, bottom, paint);
+                return ((Double) mCall.get(name)).floatValue();
+            } catch (ClassCastException e) {
+                return ((Long) mCall.get(name)).floatValue();
+            }
+        }
+
+        void call(Canvas canvas, Paint paint) {
+            LinkedList<Long> rgb = (LinkedList<Long>) mCall.get("color");
+            paint.setARGB(
+                    255,
+                    rgb.get(0).intValue(),
+                    rgb.get(1).intValue(),
+                    rgb.get(2).intValue());
+            try {
+                canvas.drawRect(
+                        pos("left"), pos("top"),
+                        pos("right"), pos("bottom"),
+                        paint);
             } catch (NullPointerException e) {
                 Log.e(mLogTag, "Canvas or Paint is null: " + e);
             }
@@ -100,20 +98,16 @@ class BockoView extends SurfaceView implements SurfaceHolder.Callback {
         Vector<DrawCall> mBuffer = new Vector<>();
 
         @JavascriptInterface
-        public void setRGB(int r, int g, int b) {
-            mBuffer.addElement(new SetRGB(r, g, b));
-        }
-
-        @JavascriptInterface
-        public void drawRect(float left, float top, float right, float bottom) {
-            mBuffer.addElement(new DrawRect(left, top, right, bottom));
-        }
-
-        @JavascriptInterface
-        public void flush(){
+        public void flush(String serialised) {
+            ByteArrayInputStream input = new ByteArrayInputStream(serialised.getBytes());
+            Reader reader = TransitFactory.reader(TransitFactory.Format.JSON, input);
+            LinkedList<HashMap<String, Object>> data = reader.read();
+            Vector<DrawCall> buffer = new Vector<>();
+            for (HashMap<String, Object> call : data) {
+                buffer.add(new DrawCall(call));
+            }
             try {
-                mQueue.put((Vector<DrawCall>) mBuffer.clone());
-                mBuffer.clear();
+                mQueue.put(buffer);
             } catch (InterruptedException e) {
                 Log.e(mLogTag, "Can't flush: " + e.toString());
             }
@@ -153,7 +147,7 @@ class BockoView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     String getUrl() {
-         return "http://192.168.0.107:3449/"; // Use something similar for figwheel
+        return "http://192.168.0.107:3449/"; // Use something similar for figwheel
 //        return "file:///android_asset/index.html"; // For bundled
     }
 
