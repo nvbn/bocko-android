@@ -3,6 +3,8 @@
 A library for drawing with [bocko](https://github.com/mfikes/bocko) on 
 Android surface view.
 
+[![Clojars Project](http://clojars.org/bocko-android/latest-version.svg)](http://clojars.org/bocko-android)
+
 ## Usage
 
 Open `android/BockoAndroid` in Android Studio

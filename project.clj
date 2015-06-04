@@ -1,4 +1,4 @@
-(defproject bocko-android "0.1.0-SNAPSHOT"
+(defproject bocko-android "0.1.0"
             :description "Render Bocko on Android surface"
             :url "https://github.com/nvbn/bocko-android"
             :license {:name "Eclipse Public License"
